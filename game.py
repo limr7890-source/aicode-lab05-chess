@@ -4,6 +4,8 @@ Check, checkmate and stalemate follow standard chess. There is no castling and n
 en passant.
 """
 
+from typing import Any
+
 FILES = "abcdefgh"
 BACK_ROW = "RNBQKBNR"
 
@@ -134,3 +136,18 @@ def move(position, source, target):
     position[1] = other(position[1])
     suffix = {"check": "+", "checkmate": "#"}.get(status(position), "")
     return source + ("x" if captured else "-") + target + suffix
+
+
+def undo_move(position: list[Any], record: dict[str, str | None]) -> None:
+    """Reverse a move in place from the record that play() stored for it.
+
+    The record holds the piece as it stood before the move, so a promoted pawn
+    comes back as a pawn, and the captured piece (if any) returns to its square.
+    """
+    board = position[0]
+    source, target = str(record["source"]), str(record["target"])
+    del board[target]
+    board[source] = record["piece"]
+    if record["captured"]:
+        board[target] = record["captured"]
+    position[1] = other(position[1])

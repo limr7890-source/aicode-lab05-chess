@@ -71,3 +71,4 @@ aside h3 { font-size: .85rem; font-weight: 600; color: var(--muted); margin: 20p
   .frame { padding: 20px; }
   .square small.rank { left: -15px; } .square small.file { bottom: -17px; }
 }
+#controls button:disabled { opacity: 0.45; cursor: default; }

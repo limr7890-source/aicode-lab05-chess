@@ -90,6 +90,8 @@ function render() {
     }
     return item;
   }));
+  const undo = document.querySelector('#undo');
+  undo.hidden = state.game_over; undo.disabled = !state.can_undo;
   document.querySelector('#captured-panel').hidden = !Object.hasOwn(state, 'captured');
   const captured = state.captured || [];
   document.querySelector('#captured').replaceChildren(...captured.map(pieceGlyph));
