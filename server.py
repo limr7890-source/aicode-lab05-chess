@@ -29,6 +29,17 @@ def make_server(port=8000):
             if self.path == "/api/state":
                 self.send_json(200, session.view())
                 return
+            if self.path == "/api/save":
+                body = json.dumps(session.snapshot(), indent=1).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Disposition",
+                                 'attachment; filename="chess.save.json"')
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
             routes = {"/": ("index.html", "text/html; charset=utf-8"),
                       "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                       "/style.css": ("style.css", "text/css; charset=utf-8")}

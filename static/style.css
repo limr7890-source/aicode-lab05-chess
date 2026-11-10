@@ -55,6 +55,11 @@ aside h3 { font-size: .85rem; font-weight: 600; color: var(--muted); margin: 20p
 #controls button { padding: 8px 16px; border: 1px solid #3a465b; background: #283246;
   color: #fff; border-radius: 6px; }
 #controls button:hover { background: #313d55; border-color: var(--brass); }
+#file-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+#file-controls a, #file-controls label { padding: 8px 16px; border: 1px solid #3a465b;
+  background: #283246; color: #fff; border-radius: 6px; cursor: pointer; text-decoration: none; }
+#file-controls a:hover, #file-controls label:hover { background: #313d55; border-color: var(--brass); }
+#file-controls input { display: none; }
 #message { min-height: 1.5em; margin: 0 0 8px; color: #ff8a80; }
 #moves { max-height: 320px; overflow: auto; margin: 0; padding-left: 2.2em;
   font-variant-numeric: tabular-nums; color: var(--muted); }
