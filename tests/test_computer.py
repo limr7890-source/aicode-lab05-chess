@@ -42,6 +42,7 @@ def test_new_game_against_the_computer():
     view = session.dispatch({"action": "new", "opponent": "computer"})
     assert view["opponent"] == "computer"
     session.dispatch({"action": "move", "source": "e2", "target": "e4"})
+    session.dispatch({"action": "submit"})
     with pytest.raises(ValueError):
         session.dispatch({"action": "move", "source": "e7", "target": "e5"})
     view = session.dispatch({"action": "computer-move"})
@@ -55,6 +56,7 @@ def test_two_player_game_has_no_computer():
     session = Session()
     assert session.view()["opponent"] == "human"
     session.dispatch({"action": "move", "source": "e2", "target": "e4"})
+    session.dispatch({"action": "submit"})
     with pytest.raises(ValueError):
         session.dispatch({"action": "computer-move"})
     session.dispatch({"action": "move", "source": "e7", "target": "e5"})

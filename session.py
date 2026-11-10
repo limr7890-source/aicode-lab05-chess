@@ -30,8 +30,8 @@ class Session:
         self.opponent = opponent
         # One record per move played, oldest first; what undo needs to reverse it.
         self.history = []
-        # Set by undo, cleared by the next move: one undo per turn.
-        self.undone_this_turn = False
+        # The last move is provisional: its player may still undo it or submit it.
+        self.pending = False
 
     def play(self, source, target):
         board = self.position[0]
@@ -44,8 +44,21 @@ class Session:
         label = move(self.position, source, target)
         self.history.append(record)
         self.notation.append(label)
-        self.undone_this_turn = False
         self.after_move()
+
+    def propose(self, source, target):
+        """A player's move. It stays provisional until submitted, so the player
+        can undo it and choose another. A move that ends the game is final."""
+        if self.pending:
+            raise ValueError("Undo or submit your move first")
+        self.play(source, target)
+        self.pending = not self.game_over()
+
+    def submit(self) -> None:
+        """Make the turn: the provisional move becomes final and the opponent moves."""
+        if not self.pending:
+            raise ValueError("There is no move to submit")
+        self.pending = False
 
     def after_move(self):
         pass
@@ -54,33 +67,24 @@ class Session:
         return status(self.position) in ("checkmate", "stalemate")
 
     def can_undo(self) -> bool:
-        """The side to move may take back its own last move, once per turn, while
-        the game is on. That needs the opponent's reply and the player's move."""
-        return (
-            len(self.history) >= 2
-            and not self.undone_this_turn
-            and not self.game_over()
-        )
+        """Only the move you just made, before you submit it, can be undone."""
+        return self.pending and not self.game_over()
 
     def undo(self) -> None:
-        """Reverse the player's last move together with the reply that followed it.
-        Taking back the first move of the game restarts the game. Undo does
-        nothing at the start and is refused when it is not available."""
+        """Take back the provisional move so its player can choose another. Undo
+        does nothing at the start and is refused once a move has been submitted."""
         if not self.history:
             return
         if self.game_over():
             raise ValueError("The game is over")
-        if self.undone_this_turn:
-            raise ValueError("Undo is available once per turn")
-        if len(self.history) < 2:
-            raise ValueError("You can only undo your own move")
-        for _ in range(2):
-            undo_move(self.position, self.history.pop())
-            self.notation.pop()
-        if self.history:
-            self.undone_this_turn = True
-        else:
-            self.__init__(self.opponent)
+        if not self.pending:
+            raise ValueError("Only the move you just made can be undone")
+        self.undo_one()
+        self.pending = False
+
+    def undo_one(self) -> None:
+        undo_move(self.position, self.history.pop())
+        self.notation.pop()
 
     def view(self):
         return {
@@ -90,6 +94,7 @@ class Session:
             "opponent": self.opponent,
             "status": status(self.position),
             "winner": winner(self.position),
+            "pending": self.pending,
             "can_undo": self.can_undo(),
             "game_over": self.game_over(),
             **self.sidebar(),
@@ -97,6 +102,7 @@ class Session:
 
     def computer_to_move(self):
         return (self.opponent == "computer" and self.position[1] == "b"
+                and not self.pending
                 and status(self.position) not in ("checkmate", "stalemate"))
 
     def sidebar(self):
@@ -107,15 +113,19 @@ class Session:
         if command == "move":
             if self.computer_to_move():
                 raise ValueError("Wait for the computer's move")
-            self.play(action.get("source"), action.get("target"))
+            self.propose(action.get("source"), action.get("target"))
         elif command == "computer-move":
             if not self.computer_to_move():
                 raise ValueError("It is not the computer's turn")
             self.play(*choose_move(self.position))
         elif command == "legal":
+            if self.pending:
+                return {"targets": []}
             return {"targets": legal_moves(self.position, action.get("source"))}
         elif command == "undo":
             self.undo()
+        elif command == "submit":
+            self.submit()
         elif command == "new":
             self.__init__(action.get("opponent", "human"))
         elif command == "promotion-setup":

@@ -77,9 +77,12 @@ function render() {
                         : `${state.turn === 'w' ? 'White' : 'Black'} to move`;
   const winner = computer ? (state.winner === 'White' ? 'You win' : 'The computer wins')
                           : `${state.winner} wins`;
+  const mover = state.turn === 'w' ? 'Black' : 'White';
+  const pending = computer ? 'Make your turn or undo' : `${mover}: make your turn or undo`;
   document.querySelector('#turn').textContent =
     state.status === 'checkmate' ? `Checkmate. ${winner}`
     : state.status === 'stalemate' ? 'Stalemate. Draw'
+    : state.pending ? pending
     : state.status === 'check' ? `${side}. Check` : side;
   const pairs = [];
   for (let i = 0; i < state.moves.length; i += 2) pairs.push(state.moves.slice(i, i + 2));
@@ -90,8 +93,10 @@ function render() {
     }
     return item;
   }));
-  const undo = document.querySelector('#undo');
-  undo.hidden = state.game_over; undo.disabled = !state.can_undo;
+  for (const id of ['#undo', '#submit']) {
+    const button = document.querySelector(id);
+    button.hidden = state.game_over; button.disabled = !state.pending;
+  }
   document.querySelector('#captured-panel').hidden = !Object.hasOwn(state, 'captured');
   const captured = state.captured || [];
   document.querySelector('#captured').replaceChildren(...captured.map(pieceGlyph));
@@ -114,7 +119,7 @@ function coordinate(kind, text) {
 // Against the computer, it answers after a short pause so each move is seen and heard.
 async function computerReply() {
   const over = state.status === 'checkmate' || state.status === 'stalemate';
-  if (state.opponent !== 'computer' || state.turn !== 'b' || over) return;
+  if (state.opponent !== 'computer' || state.turn !== 'b' || state.pending || over) return;
   await new Promise(resolve => setTimeout(resolve, 500));
   state = await request({action: 'computer-move'});
   render();
@@ -148,6 +153,7 @@ document.querySelector('#controls').onclick = async event => {
     state = await request({action: button.dataset.action, opponent: button.dataset.opponent});
     selected = null; targets = [];
     message.textContent = ''; render();
+    await computerReply();
   } catch (error) { message.textContent = error.message; }
   finally { busy = false; }
 };

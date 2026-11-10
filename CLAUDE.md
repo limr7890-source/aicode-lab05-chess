@@ -19,7 +19,7 @@ Run the full test suite before every commit and after every merge.
   `"e4"` to pieces like `"wP"`; `turn` is `"w"` or `"b"`. `move()` applies a move in place and
   returns its notation label; `undo_move()` reverses one from a history record.
 - `session.py`: one game. State is `position`, `notation` (labels), `opponent`
-  (`"human"` or `"computer"`), `history` (see below) and `undone_this_turn`.
+  (`"human"` or `"computer"`), `history` (see below) and `pending`.
   `dispatch(action_dict)` handles every UI action and returns `view()`.
 - `computer.py`: one-ply computer opponent, plays Black.
 - `server.py`: single in-memory session, `GET /api/state`, `POST /api/action`, static files.
@@ -39,28 +39,33 @@ square before the move or `null`. Records are plain JSON. Undo replays them back
 save/load stores and restores the list unchanged.
 
 Save file (JSON, suffix `.save.json`, already git-ignored): keys `board`, `turn`,
-`notation`, `opponent`, `history`. Leave room for a `redo` list later.
+`notation`, `opponent`, `history`, `pending` (bool: the last move is provisional).
+Leave room for a `redo` list later.
 
-## Undo rules (agreed)
+## Turn and undo rules (agreed)
 
-- Every move played is recorded in `history`.
-- Undo reverses the last move the side to move made. Since the opponent has replied, that
-  means taking back two half-moves: the reply and the player's own move.
-- Undo is only available on your turn. You cannot take back the other player's move, so with
-  a single move on the board Black cannot undo.
-- Taking back the first move of the game restarts the game (same opponent mode).
-- Undo is unavailable once the game ends (checkmate or stalemate) and the button is hidden.
-- One undo per turn: after undoing you must play a move before undoing again.
+- A player's move is provisional until they press **Make turn** (`submit` action). While it
+  is provisional, the opponent cannot move (`legal` returns no targets, `move` is refused)
+  and the computer does not reply.
+- **Undo** takes back the provisional move so the player can choose a different one. It
+  only ever touches the player's own move, never the opponent's. After undoing, the player
+  picks another move and submits that.
+- Once a move is submitted it is final and cannot be undone.
+- Undoing a provisional first move returns to the starting position.
+- A move that ends the game (checkmate or stalemate) is final at once; Undo and Make turn
+  are hidden once the game is over.
 - Undo at the very start does nothing. Other unavailable cases raise `ValueError`.
-- Against the computer the same rule applies: one undo takes back the computer's reply and
-  your move, and it is your turn again.
-- `view()` exposes `can_undo` and `game_over` for the button state.
+- Against the computer the same flow applies: move, optionally undo, Make turn, then the
+  computer replies. The computer's own moves are never provisional.
+- Every move played is recorded in `history`; `view()` exposes `pending`, `can_undo` and
+  `game_over` for the buttons and the turn text.
 
 ## Branch and file ownership while the two features are in flight
 
-- `feature/undo`: `game.py` (`undo_move`), `session.py` (`play`, `undo`, `can_undo`,
-  `game_over`, the `"undo"` branch in `dispatch`, `can_undo`/`game_over` in `view`),
-  one button in `#controls`, one block in `render()`, `tests/test_undo.py`.
+- `feature/undo`: `game.py` (`undo_move`), `session.py` (`play`, `propose`, `submit`, `undo`, `undo_one`, `can_undo`,
+  `game_over`, the `"undo"`/`"submit"` branches and the pending check in `dispatch`,
+  `pending`/`can_undo`/`game_over` in `view`), two buttons in `#controls`, two blocks in
+  `render()`, `tests/test_undo.py`, plus two `submit` lines added to `tests/test_computer.py`.
 - `feature/save-load`: `server.py`, a `restore(data)` method and `"save"`/`"load"`
   branches at the bottom of `dispatch`, a new `<div id="file-controls">` in `index.html`,
   a new block at the bottom of `app.js`, CSS rules placed after `#controls button:hover`,
