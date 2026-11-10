@@ -10,8 +10,10 @@ from session import Session
 
 
 def play(session, *moves):
+    """Play and submit each move in turn, as two players would."""
     for source, target in moves:
         session.dispatch({"action": "move", "source": source, "target": target})
+        session.dispatch({"action": "submit"})
 
 
 def saved(session):
@@ -43,7 +45,7 @@ def test_load_resumes_the_game_in_a_fresh_session():
     assert view["turn"] == "b"
     assert view["opponent"] == "human"
     # Play continues from the loaded position.
-    fresh.dispatch({"action": "move", "source": "d8", "target": "d5"})
+    play(fresh, ("d8", "d5"))
     assert fresh.view()["moves"][-1] == "d8xd5"
 
 
@@ -81,7 +83,8 @@ def test_save_and_load_a_finished_game():
         {"g1": "wK", "a1": "wR", "g8": "bK", "f7": "bP", "g7": "bP", "h7": "bP"},
         "w",
     ]
-    play(session, ("a1", "a8"))
+    # A mating move is final at once, so there is nothing to submit.
+    session.dispatch({"action": "move", "source": "a1", "target": "a8"})
     fresh = Session()
     view = fresh.dispatch({"action": "load", "game": saved(session)})
     assert view["status"] == "checkmate"
