@@ -155,3 +155,19 @@ try {
   if (!response.ok) throw new Error('Could not load the game');
   state = await response.json(); render();
 } catch (error) { message.textContent = error.message; }
+
+// Save is a plain download of /api/save. Load reads the chosen file and sends it as an action.
+document.querySelector('#load').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file || busy) return;
+  busy = true;
+  try {
+    const game = JSON.parse(await file.text());
+    state = await request({action: 'load', game});
+    selected = null; targets = [];
+    message.textContent = `Loaded ${file.name}`; render();
+    await computerReply();
+  } catch (error) { message.textContent = error.message; }
+  finally { busy = false; }
+};

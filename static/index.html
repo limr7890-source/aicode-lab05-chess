@@ -15,6 +15,10 @@
           <button data-action="new" data-opponent="human">New game: two players</button>
           <button data-action="new" data-opponent="computer">New game: play the computer</button>
         </div>
+        <div id="file-controls">
+          <a id="save" href="/api/save" download="chess.save.json">Save game</a>
+          <label id="load-label">Load game<input type="file" id="load" accept=".json,application/json"></label>
+        </div>
         <section id="captured-panel" hidden><h3>Captured pieces</h3><p id="captured"></p></section>
         <h3>Moves</h3><ol id="moves"></ol>
       </aside>
